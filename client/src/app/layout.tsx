@@ -4,6 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'DigitalHeroes - Lead Management',
   description: 'Lead management platform for Digital Heroes',
+  icons: { icon: '/favicon.svg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
