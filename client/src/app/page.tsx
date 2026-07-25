@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { api } from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -16,6 +16,13 @@ export default function HomePage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', company: '' });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    if (stored && token) setUser(JSON.parse(stored));
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -41,10 +48,24 @@ export default function HomePage() {
             <span className="text-xl font-bold text-gray-900">DigitalHeroes</span>
           </div>
           <div className="flex items-center gap-4">
-            <a href="/login" className="text-gray-600 hover:text-gray-900 font-medium transition">Sign In</a>
-            <a href="/register" className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
-              Get Started
-            </a>
+            {user ? (
+              <a href="/dashboard" className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-md">
+                  <span className="text-sm font-bold text-white">{user.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-slate-900 leading-tight">{user.name}</p>
+                  <p className="text-[11px] text-slate-400 font-mono uppercase tracking-wider">{user.role}</p>
+                </div>
+              </a>
+            ) : (
+              <>
+                <a href="/login" className="text-gray-600 hover:text-gray-900 font-medium transition">Sign In</a>
+                <a href="/register" className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-medium transition shadow-sm">
+                  Get Started
+                </a>
+              </>
+            )}
           </div>
         </div>
       </nav>
