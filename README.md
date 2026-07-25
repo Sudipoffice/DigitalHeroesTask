@@ -8,6 +8,24 @@ A lead management application for small sales teams.
 
 ---
 
+## Deployed App
+
+| Service  | URL                                                |
+|----------|----------------------------------------------------|
+| Frontend | https://lead-manager-task.vercel.app               |
+| Backend  | https://digitalheroestask.onrender.com             |
+
+### Login Credentials
+
+| Role   | Email                     | Password  |
+|--------|---------------------------|-----------|
+| Admin  | admin@digitalheroes.com   | admin123  |
+| Member | member@digitalheroes.com  | member123 |
+
+> Use these credentials on the deployed frontend at https://lead-manager-task.vercel.app
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -63,11 +81,25 @@ Tests use an in-memory MongoDB (mongodb-memory-server). No external DB needed.
 
 ## API Documentation
 
-Base URL: `http://localhost:3001`
+**Base URLs:**
+- Local: `http://localhost:3001`
+- Deployed: `https://digitalheroestask.onrender.com`
 
 All authenticated endpoints require a Bearer token in the Authorization header:
 ```
 Authorization: Bearer <token>
+```
+
+---
+
+### Root
+
+#### GET /
+Returns API status and available endpoints.
+
+**Response** `200`:
+```json
+{ "message": "DigitalHeroes Lead Management API", "version": "1.0.0", "endpoints": { "auth": { "register": "POST /api/auth/register", "login": "POST /api/auth/login", "me": "GET /api/auth/me", "users": "GET /api/auth/users" }, "leads": { "public": "POST /api/leads/public", "list": "GET /api/leads", "get": "GET /api/leads/:id", "create": "POST /api/leads", "update": "PATCH /api/leads/:id", "addNote": "POST /api/leads/:id/notes", "delete": "DELETE /api/leads/:id" } } }
 ```
 
 ---
