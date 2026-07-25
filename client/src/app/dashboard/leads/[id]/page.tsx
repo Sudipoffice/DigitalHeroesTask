@@ -25,6 +25,9 @@ export default function LeadDetailPage() {
   const [noteText, setNoteText] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
+  useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4000); return () => clearTimeout(t); } }, [toast]);
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -49,19 +52,19 @@ export default function LeadDetailPage() {
 
   const handleStatusChange = async (status: string) => {
     try { const res = await api.leads.update(params.id as string, { status }); setLead(res.lead); }
-    catch (err: any) { alert(err.message); }
+    catch (err: any) { setToast({ message: err.message, type: 'error' }); }
   };
 
   const handleAssign = async (assignedTo: string) => {
     try { const res = await api.leads.update(params.id as string, { assignedTo }); setLead(res.lead); }
-    catch (err: any) { alert(err.message); }
+    catch (err: any) { setToast({ message: err.message, type: 'error' }); }
   };
 
   const handleAddNote = async (e: FormEvent) => {
     e.preventDefault();
     if (!noteText.trim()) return;
     try { const res = await api.leads.addNote(params.id as string, noteText); setLead(res.lead); setNoteText(''); }
-    catch (err: any) { alert(err.message); }
+    catch (err: any) { setToast({ message: err.message, type: 'error' }); }
   };
 
   if (loading) {
@@ -276,6 +279,18 @@ export default function LeadDetailPage() {
           </div>
         </div>
       </main>
+
+      {toast && (
+        <div className={`fixed top-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border bg-white animate-slide-up ${toast.type === 'error' ? 'border-red-200' : 'border-emerald-200'}`}>
+          <div className={`w-2 h-2 rounded-full ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+          <p className="text-sm font-medium text-slate-800">{toast.message}</p>
+          <button onClick={() => setToast(null)} className="p-1 rounded-md hover:bg-slate-100 transition-all">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

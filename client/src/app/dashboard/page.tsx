@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Lead, User, Pagination } from '@/types';
+import ConfirmModal from '@/components/ConfirmModal';
 
 const STATUS_OPTIONS = ['new', 'contacted', 'qualified', 'proposal', 'closed_won', 'closed_lost'] as const;
 
@@ -28,6 +29,10 @@ export default function DashboardPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', company: '' });
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
+  useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4000); return () => clearTimeout(t); } }, [toast]);
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -62,7 +67,17 @@ export default function DashboardPage() {
       setAddForm({ firstName: '', lastName: '', email: '', phone: '', company: '' });
       setPagination(prev => ({ ...prev, page: 1 }));
       fetchLeads();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { setToast({ message: err.message, type: 'error' }); }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await api.leads.delete(deleteTarget.id);
+      setDeleteTarget(null);
+      setToast({ message: 'Lead deleted successfully', type: 'success' });
+      fetchLeads();
+    } catch (err: any) { setToast({ message: err.response?.data?.error || 'Failed to delete lead', type: 'error' }); }
   };
 
   const handleLogout = () => {
@@ -273,9 +288,18 @@ export default function DashboardPage() {
                       <td className="px-6 py-4 text-sm text-slate-500">{lead.assignedTo?.name || <span className="text-slate-300">Unassigned</span>}</td>
                       <td className="px-6 py-4 text-sm text-slate-400">{new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={e => { e.stopPropagation(); router.push(`/dashboard/leads/${lead._id}`); }} className="px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all">
-                          View →
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {user.role === 'admin' && (
+                            <button onClick={e => { e.stopPropagation(); setDeleteTarget({ id: lead._id, name: lead.firstName + ' ' + lead.lastName }); }} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Delete lead">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                          <button onClick={e => { e.stopPropagation(); router.push(`/dashboard/leads/${lead._id}`); }} className="px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all">
+                            View →
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -284,7 +308,7 @@ export default function DashboardPage() {
             </table>
           </div>
 
-          {pagination.pages > 1 && (
+          {pagination.total > 0 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
               <p className="text-sm text-slate-500">
                 <span className="font-medium text-slate-700">{(pagination.page - 1) * pagination.limit + 1}</span> – <span className="font-medium text-slate-700">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of <span className="font-medium text-slate-700">{pagination.total}</span>
@@ -302,6 +326,26 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete Lead"
+        message={`Delete "${deleteTarget?.name}"? This cannot be undone.`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {toast && (
+        <div className={`fixed top-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border bg-white animate-slide-up ${toast.type === 'error' ? 'border-red-200' : 'border-emerald-200'}`}>
+          <div className={`w-2 h-2 rounded-full ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+          <p className="text-sm font-medium text-slate-800">{toast.message}</p>
+          <button onClick={() => setToast(null)} className="p-1 rounded-md hover:bg-slate-100 transition-all">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
