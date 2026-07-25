@@ -56,7 +56,14 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-4">
             {user ? (
-              <div className="relative">
+              <>
+                <a href="/dashboard" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  Dashboard
+                </a>
+                <div className="relative">
                 <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 transition-all">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-md">
                     <span className="text-sm font-bold text-white">{user.name.charAt(0).toUpperCase()}</span>
@@ -89,6 +96,7 @@ export default function HomePage() {
                   </>
                 )}
               </div>
+              </>
             ) : (
               <>
                 <a href="/login" className="text-gray-600 hover:text-gray-900 font-medium transition">Sign In</a>
