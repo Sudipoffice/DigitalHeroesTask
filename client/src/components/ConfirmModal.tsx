@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+
 interface ConfirmModalProps {
   open: boolean;
   title: string;
@@ -10,10 +12,17 @@ interface ConfirmModalProps {
 }
 
 export default function ConfirmModal({ open, title, message, confirmLabel = 'Delete', onConfirm, onCancel }: ConfirmModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 animate-slide-up">
         <div className="flex items-center gap-4 mb-4">
@@ -23,7 +32,7 @@ export default function ConfirmModal({ open, title, message, confirmLabel = 'Del
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+            <h3 id="confirm-title" className="text-lg font-bold text-slate-900">{title}</h3>
             <p className="text-sm text-slate-500 mt-0.5">{message}</p>
           </div>
         </div>

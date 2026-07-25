@@ -29,42 +29,47 @@ export default function LeadDetailPage() {
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4000); return () => clearTimeout(t); } }, [toast]);
 
+  const leadId = typeof params.id === 'string' ? params.id : '';
+
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (!stored || !token) { router.push('/login'); return; }
-    setUser(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      if (!stored || !token) { router.push('/login'); return; }
+      const parsed = JSON.parse(stored);
+      if (parsed?.name) setUser(parsed);
+    } catch { router.push('/login'); }
   }, [router]);
 
   useEffect(() => {
-    if (!user || !params.id) return;
+    if (!user || !leadId) return;
     fetchLead();
     if (user.role === 'admin') { api.auth.users().then(res => setUsers(res.users)).catch(() => {}); }
-  }, [user, params.id]);
+  }, [user, leadId]);
 
   const fetchLead = async () => {
     setLoading(true);
     setError('');
-    try { const res = await api.leads.get(params.id as string); setLead(res.lead); }
-    catch (err: any) { setError(err.message || 'Failed to load lead'); }
+    try { const res = await api.leads.get(leadId); setLead(res.lead); }
+    catch (err: any) { setError(err?.message || 'Failed to load lead'); }
     finally { setLoading(false); }
   };
 
   const handleStatusChange = async (status: string) => {
-    try { const res = await api.leads.update(params.id as string, { status }); setLead(res.lead); }
-    catch (err: any) { setToast({ message: err.message, type: 'error' }); }
+    try { const res = await api.leads.update(leadId, { status }); setLead(res.lead); }
+    catch (err: any) { setToast({ message: err?.message || 'Failed to update status', type: 'error' }); }
   };
 
   const handleAssign = async (assignedTo: string) => {
-    try { const res = await api.leads.update(params.id as string, { assignedTo }); setLead(res.lead); }
-    catch (err: any) { setToast({ message: err.message, type: 'error' }); }
+    try { const res = await api.leads.update(leadId, { assignedTo }); setLead(res.lead); }
+    catch (err: any) { setToast({ message: err?.message || 'Failed to assign', type: 'error' }); }
   };
 
   const handleAddNote = async (e: FormEvent) => {
     e.preventDefault();
     if (!noteText.trim()) return;
-    try { const res = await api.leads.addNote(params.id as string, noteText); setLead(res.lead); setNoteText(''); }
-    catch (err: any) { setToast({ message: err.message, type: 'error' }); }
+    try { const res = await api.leads.addNote(leadId, noteText); setLead(res.lead); setNoteText(''); }
+    catch (err: any) { setToast({ message: err?.message || 'Failed to add note', type: 'error' }); }
   };
 
   if (loading) {
@@ -236,8 +241,8 @@ export default function LeadDetailPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {lead.notes.map((note, i) => (
-                  <div key={i} className="group rounded-xl bg-slate-50 border border-slate-100 p-4 hover:border-blue-100 hover:bg-blue-50/30 transition-all">
+                {lead.notes.map((note) => (
+                  <div key={note._id || note.createdAt} className="group rounded-xl bg-slate-50 border border-slate-100 p-4 hover:border-blue-100 hover:bg-blue-50/30 transition-all">
                     <p className="text-sm text-slate-700 leading-relaxed">{note.text}</p>
                     <div className="flex items-center gap-2 mt-3 text-xs text-slate-400">
                       <span className="font-medium text-slate-500">{note.author?.name}</span>
@@ -269,7 +274,7 @@ export default function LeadDetailPage() {
                 <div className="absolute left-[15px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-200 via-indigo-200 to-transparent" />
                 <div className="space-y-6">
                   {lead.activity.map((act, i) => (
-                    <div key={i} className="relative flex gap-4 animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
+                    <div key={act._id || i} className="relative flex gap-4 animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
                       <div className="relative z-10 flex-shrink-0 w-8 h-8 rounded-full bg-white border-2 border-blue-200 flex items-center justify-center shadow-sm">
                         <div className={`w-3 h-3 rounded-full ${act.action === 'created' ? 'bg-blue-500' : act.action === 'status_change' ? 'bg-amber-500' : act.action === 'assigned' ? 'bg-purple-500' : 'bg-indigo-500'}`} />
                       </div>
@@ -294,7 +299,7 @@ export default function LeadDetailPage() {
         <div className={`fixed top-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border bg-white animate-slide-up ${toast.type === 'error' ? 'border-red-200' : 'border-emerald-200'}`}>
           <div className={`w-2 h-2 rounded-full ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
           <p className="text-sm font-medium text-slate-800">{toast.message}</p>
-          <button onClick={() => setToast(null)} className="p-1 rounded-md hover:bg-slate-100 transition-all">
+          <button onClick={() => setToast(null)} aria-label="Dismiss" className="p-1 rounded-md hover:bg-slate-100 transition-all">
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

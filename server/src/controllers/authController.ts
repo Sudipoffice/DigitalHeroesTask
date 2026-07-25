@@ -50,7 +50,13 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const getMe = (req: AuthRequest, res: Response) => {
-  res.json({ user: { id: req.user!._id, name: req.user!.name, email: req.user!.email, role: req.user!.role } });
+  try {
+    if (!req.user) throw new AppError(401, 'Not authenticated');
+    res.json({ user: { id: req.user._id, name: req.user.name, email: req.user.email, role: req.user.role } });
+  } catch (error) {
+    const { status, body } = handleError(error);
+    res.status(status).json(body);
+  }
 };
 
 export const listUsers = async (_req: AuthRequest, res: Response) => {

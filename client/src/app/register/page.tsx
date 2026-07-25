@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 
@@ -8,17 +8,26 @@ export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) router.push('/dashboard');
+  }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
     try {
       const res = await api.auth.register(form.name, form.email, form.password);
       localStorage.setItem('token', res.token);
       localStorage.setItem('user', JSON.stringify(res.user));
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err?.message || 'Registration failed');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -28,8 +37,9 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold text-center mb-6">Create Account</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label htmlFor="reg-name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
             <input
+              id="reg-name"
               type="text"
               required
               value={form.name}
@@ -38,8 +48,9 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label htmlFor="reg-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
+              id="reg-email"
               type="email"
               required
               value={form.email}
@@ -48,8 +59,9 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
+              id="reg-password"
               type="password"
               required
               value={form.password}
@@ -57,12 +69,13 @@ export default function RegisterPage() {
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p role="alert" className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+            disabled={submitting}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Register
+            {submitting ? 'Creating Account...' : 'Register'}
           </button>
         </form>
         <p className="text-center text-sm text-gray-500 mt-4">

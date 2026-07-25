@@ -5,8 +5,10 @@ async function request(path: string, options: RequestInit = {}) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options.headers as Record<string, string>) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  let data: any;
+  try { data = await res.json(); }
+  catch { throw new Error(`Server returned ${res.status}: ${res.statusText}`); }
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
   return data;
 }
 

@@ -25,49 +25,56 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submittingAdd, setSubmittingAdd] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', company: '' });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
+  const resetAddForm = () => setAddForm({ firstName: '', lastName: '', email: '', phone: '', company: '' });
+
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4000); return () => clearTimeout(t); } }, [toast]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (!stored || !token) { router.push('/login'); return; }
-    setUser(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      if (!stored || !token) { router.push('/login'); return; }
+      const parsed = JSON.parse(stored);
+      if (parsed?.name) setUser(parsed);
+    } catch { router.push('/login'); }
   }, [router]);
 
   useEffect(() => { if (user) fetchLeads(); }, [user, statusFilter, pagination.page]);
 
   const fetchLeads = async (searchValue?: string) => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     try {
       const res = await api.leads.list({ page: pagination.page, limit: pagination.limit, status: statusFilter || undefined, search: searchValue || search || undefined });
+      if (controller.signal.aborted) return;
       setLeads(res.leads);
       setPagination(res.pagination);
-    } catch { setLeads([]); }
-    finally { setLoading(false); }
-  };
-
-  const handleSearch = (e?: FormEvent) => {
-    if (e) e.preventDefault();
-    setPagination(prev => ({ ...prev, page: 1 }));
-    setTimeout(fetchLeads, 0);
+    } catch { if (!controller.signal.aborted) setLeads([]); }
+    finally { if (!controller.signal.aborted) setLoading(false); }
   };
 
   const handleAddLead = async (e: FormEvent) => {
     e.preventDefault();
+    setSubmittingAdd(true);
     try {
       await api.leads.create(addForm);
       setShowAddModal(false);
-      setAddForm({ firstName: '', lastName: '', email: '', phone: '', company: '' });
+      resetAddForm();
       setPagination(prev => ({ ...prev, page: 1 }));
       fetchLeads();
     } catch (err: any) { setToast({ message: err.message, type: 'error' }); }
+    finally { setSubmittingAdd(false); }
   };
 
   const confirmDelete = async () => {
@@ -339,7 +346,7 @@ export default function DashboardPage() {
         <div className={`fixed top-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border bg-white animate-slide-up ${toast.type === 'error' ? 'border-red-200' : 'border-emerald-200'}`}>
           <div className={`w-2 h-2 rounded-full ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
           <p className="text-sm font-medium text-slate-800">{toast.message}</p>
-          <button onClick={() => setToast(null)} className="p-1 rounded-md hover:bg-slate-100 transition-all">
+          <button onClick={() => setToast(null)} aria-label="Dismiss" className="p-1 rounded-md hover:bg-slate-100 transition-all">
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -356,7 +363,7 @@ export default function DashboardPage() {
                 <h2 className="text-xl font-bold text-slate-900">Add New Lead</h2>
                 <p className="text-sm text-slate-500 mt-1">Enter the lead&apos;s contact information.</p>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="p-2 rounded-lg hover:bg-slate-100 transition-all">
+              <button onClick={() => { setShowAddModal(false); resetAddForm(); }} aria-label="Close" className="p-2 rounded-lg hover:bg-slate-100 transition-all">
                 <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -365,31 +372,31 @@ export default function DashboardPage() {
             <form onSubmit={handleAddLead} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">First Name *</label>
-                  <input type="text" required value={addForm.firstName} onChange={e => setAddForm({ ...addForm, firstName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="John" />
+                  <label htmlFor="add-firstName" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">First Name *</label>
+                  <input id="add-firstName" type="text" required value={addForm.firstName} onChange={e => setAddForm({ ...addForm, firstName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="John" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Last Name *</label>
-                  <input type="text" required value={addForm.lastName} onChange={e => setAddForm({ ...addForm, lastName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="Doe" />
+                  <label htmlFor="add-lastName" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Last Name *</label>
+                  <input id="add-lastName" type="text" required value={addForm.lastName} onChange={e => setAddForm({ ...addForm, lastName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="Doe" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Email *</label>
-                <input type="email" required value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="john@company.com" />
+                <label htmlFor="add-email" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Email *</label>
+                <input id="add-email" type="email" required value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="john@company.com" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Phone</label>
-                  <input type="tel" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="+1 (555) 000-0000" />
+                  <label htmlFor="add-phone" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Phone</label>
+                  <input id="add-phone" type="tel" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="+1 (555) 000-0000" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Company</label>
-                  <input type="text" value={addForm.company} onChange={e => setAddForm({ ...addForm, company: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="ACME Inc." />
+                  <label htmlFor="add-company" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Company</label>
+                  <input id="add-company" type="text" value={addForm.company} onChange={e => setAddForm({ ...addForm, company: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="ACME Inc." />
                 </div>
               </div>
               <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">Cancel</button>
-                <button type="submit" className="px-6 py-2.5 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-md shadow-blue-500/20">Add Lead</button>
+                <button type="button" onClick={() => { setShowAddModal(false); resetAddForm(); }} className="px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">Cancel</button>
+                <button type="submit" disabled={submittingAdd} className="px-6 py-2.5 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">{submittingAdd ? 'Adding...' : 'Add Lead'}</button>
               </div>
             </form>
           </div>

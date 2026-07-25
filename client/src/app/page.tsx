@@ -3,26 +3,23 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { api } from '@/lib/api';
 
-const STATUS_COLORS: Record<string, string> = {
-  new: 'bg-blue-100 text-blue-800',
-  contacted: 'bg-yellow-100 text-yellow-800',
-  qualified: 'bg-purple-100 text-purple-800',
-  proposal: 'bg-indigo-100 text-indigo-800',
-  closed_won: 'bg-green-100 text-green-800',
-  closed_lost: 'bg-red-100 text-red-800',
-};
-
 export default function HomePage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', company: '' });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (stored && token) setUser(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      if (stored && token) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.name) setUser(parsed);
+      }
+    } catch { /* stored data is corrupted, ignore */ }
   }, []);
 
   const handleLogout = () => {
@@ -34,12 +31,15 @@ export default function HomePage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
     try {
       await api.leads.submitPublic(form);
       setSubmitted(true);
       setForm({ firstName: '', lastName: '', email: '', phone: '', company: '' });
     } catch (err: any) {
-      setError(err.message || 'Submission failed');
+      setError(err?.message || 'Submission failed');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -192,8 +192,9 @@ export default function HomePage() {
               <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-sm border space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">First Name *</label>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1.5">First Name *</label>
                     <input
+                      id="firstName"
                       type="text"
                       required
                       value={form.firstName}
@@ -203,8 +204,9 @@ export default function HomePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Last Name *</label>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1.5">Last Name *</label>
                     <input
+                      id="lastName"
                       type="text"
                       required
                       value={form.lastName}
@@ -215,8 +217,9 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
                   <input
+                    id="email"
                     type="email"
                     required
                     value={form.email}
@@ -226,8 +229,9 @@ export default function HomePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
                   <input
+                    id="phone"
                     type="tel"
                     value={form.phone}
                     onChange={e => setForm({ ...form, phone: e.target.value })}
@@ -236,8 +240,9 @@ export default function HomePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Company</label>
+                  <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1.5">Company</label>
                   <input
+                    id="company"
                     type="text"
                     value={form.company}
                     onChange={e => setForm({ ...form, company: e.target.value })}
@@ -245,12 +250,13 @@ export default function HomePage() {
                     placeholder="ACME Inc."
                   />
                 </div>
-                {error && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
+                {error && <p role="alert" className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 font-medium transition shadow-sm"
+                  disabled={submitting}
+                  className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Submit
+                  {submitting ? 'Submitting...' : 'Submit'}
                 </button>
               </form>
             )}
