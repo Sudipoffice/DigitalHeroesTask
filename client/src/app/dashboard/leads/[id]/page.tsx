@@ -169,29 +169,39 @@ export default function LeadDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-8 border-t border-slate-100">
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Status</label>
-              <select
-                value={lead.status}
-                onChange={e => handleStatusChange(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer"
-              >
-                {STATUS_OPTIONS.map(s => (
-                  <option key={s} value={s}>{s.replace('_', ' ')}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={lead.status}
+                  onChange={e => handleStatusChange(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-10 text-sm text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer"
+                >
+                  {STATUS_OPTIONS.map(s => (
+                    <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                  ))}
+                </select>
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
             {user.role === 'admin' && (
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Assign To</label>
-                <select
-                  value={lead.assignedTo?._id || ''}
-                  onChange={e => handleAssign(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="">Unassigned</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={lead.assignedTo?._id || ''}
+                    onChange={e => handleAssign(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-10 text-sm text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="">Unassigned</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             )}
           </div>
