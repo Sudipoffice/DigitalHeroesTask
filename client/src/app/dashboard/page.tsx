@@ -164,7 +164,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
           {[
             { label: 'Total Leads', count: pagination.total, gradient: 'from-blue-600 to-indigo-600', light: 'bg-blue-50' },
-            ...STATUS_OPTIONS.map(s => ({ label: STATUS_META[s].label, count: statusCounts[s] || 0, gradient: STATUS_META[s].badge.includes('blue') ? 'from-blue-500 to-cyan-500' : STATUS_META[s].badge.includes('amber') ? 'from-amber-500 to-orange-500' : STATUS_META[s].badge.includes('purple') ? 'from-purple-500 to-pink-500' : STATUS_META[s].badge.includes('indigo') ? 'from-indigo-500 to-violet-500' : STATUS_META[s].badge.includes('emerald') ? 'from-emerald-500 to-teal-500' : 'from-red-500 to-rose-500', light: STATUS_META[s].badge.split(' ')[0] })),
+            ...STATUS_OPTIONS.filter(s => statusCounts[s] > 0).map(s => ({ label: STATUS_META[s].label, count: statusCounts[s], gradient: STATUS_META[s].badge.includes('blue') ? 'from-blue-500 to-cyan-500' : STATUS_META[s].badge.includes('amber') ? 'from-amber-500 to-orange-500' : STATUS_META[s].badge.includes('purple') ? 'from-purple-500 to-pink-500' : STATUS_META[s].badge.includes('indigo') ? 'from-indigo-500 to-violet-500' : STATUS_META[s].badge.includes('emerald') ? 'from-emerald-500 to-teal-500' : 'from-red-500 to-rose-500', light: STATUS_META[s].badge.split(' ')[0] })),
           ].map((stat, i) => (
             <div
               key={i}
